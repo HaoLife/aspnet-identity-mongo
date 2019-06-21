@@ -59,6 +59,7 @@ namespace Microsoft.Extensions.DependencyInjection
             return builder;
         }
 
+
         /// <summary>
         ///     This method registers identity services and MongoDB stores using the IdentityUser and IdentityRole types.
         /// </summary>
@@ -83,6 +84,49 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             return services.AddIdentity<TUser, TRole>()
                 .RegisterMongoStores<TUser, TRole, TUserKey, TRoleKey>(connectionString, dbname);
+        }
+
+
+
+
+
+        /// <summary>
+        ///     This method only registers mongo stores, you also need to call AddIdentity.
+        ///     Consider using AddIdentityWithMongoStores.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="connectionString">Must contain the database name</param>
+        public static IdentityBuilder RegisterMongoStores(this IdentityBuilder builder, string connectionString, string dbname)
+        {
+            return builder.RegisterMongoStores<IdentityUser, IdentityRole>(connectionString, dbname);
+        }
+
+
+        /// <summary>
+        ///     This method only registers mongo stores, you also need to call AddIdentity.
+        ///     Consider using AddIdentityWithMongoStores.
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <param name="connectionString">Must contain the database name</param>
+        public static IdentityBuilder RegisterMongoStores<TUser, TRole>(this IdentityBuilder builder, string connectionString, string dbname)
+            where TRole : IdentityRole
+            where TUser : IdentityUser
+        {
+            var url = new MongoUrl(connectionString);
+            var client = new MongoClient(url);
+            var database = client.GetDatabase(dbname);
+            return builder.RegisterMongoStores<TUser, TRole, string, string>(p => database.GetCollection<TUser>("users"), p => database.GetCollection<TRole>("roles"));
+        }
+
+
+        /// <summary>
+        ///     This method registers identity services and MongoDB stores using the IdentityUser and IdentityRole types.
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="connectionString">Connection string must contain the database name</param>
+        public static IdentityBuilder AddIdentityWithMongoStores(this IServiceCollection services, string connectionString, string dbname)
+        {
+            return services.AddIdentityWithMongoStoresUsingCustomTypes<IdentityUser, IdentityRole, string, string>(connectionString, dbname);
         }
     }
 }
